@@ -268,9 +268,13 @@ public class SpringApplication {
 		this.resourceLoader = resourceLoader;
 		Assert.notNull(primarySources, "PrimarySources must not be null");
 		this.primarySources = new LinkedHashSet<>(Arrays.asList(primarySources));
+		// web类型判断，servlet(Spring mvc)或reactive(Spring flux)
 		this.webApplicationType = WebApplicationType.deduceFromClasspath();
+		// 从spring.factories中拿到ApplicationContextInitializer的实现，并赋给this.initializers
 		setInitializers((Collection) getSpringFactoriesInstances(ApplicationContextInitializer.class));
+		// 跟上面同样的方式获取到ApplicationListener的实现赋值给this.listeners
 		setListeners((Collection) getSpringFactoriesInstances(ApplicationListener.class));
+		// 拿到main方法所在的class赋值给mainApplicationClass（可能存在main方法并不是@SpringBootApplication的情况）
 		this.mainApplicationClass = deduceMainApplicationClass();
 	}
 
@@ -296,12 +300,16 @@ public class SpringApplication {
 	 * @return a running {@link ApplicationContext}
 	 */
 	public ConfigurableApplicationContext run(String... args) {
+		// StopWatch用来计算容器启动时间
 		StopWatch stopWatch = new StopWatch();
 		stopWatch.start();
 		ConfigurableApplicationContext context = null;
 		Collection<SpringBootExceptionReporter> exceptionReporters = new ArrayList<>();
 		configureHeadlessProperty();
+		// 在spring.factories中获取SpringApplicationRunListener.class类（里面有细节）
+		// SpringApplicationRunListeners实则是SpringApplicationRunListener的list的封装
 		SpringApplicationRunListeners listeners = getRunListeners(args);
+		// 执行所有listener的starting，此时为Spring Boot的starting生命周期。实则是在执行SpringApplicationRunListener下所包含的ApplicationListener（也就是被配置在spring.factories中的ApplicationListener的实现）
 		listeners.starting();
 		try {
 			ApplicationArguments applicationArguments = new DefaultApplicationArguments(args);
@@ -411,7 +419,10 @@ public class SpringApplication {
 	}
 
 	private SpringApplicationRunListeners getRunListeners(String[] args) {
+		// todo 搞不懂这里为什么要加个String[].class的类型去找构造器
 		Class<?>[] types = new Class<?>[] { SpringApplication.class, String[].class };
+		// 这获取（实例化）SpringApplicationRunListener类型的实例，使用的是有参构造器（必须使用有参），传入this。
+		// 实现类EventPublishingRunListener的有参构造器中会把之前在new SpringBootApplication()时从spring.factories中的ApplicationListener.class类型的监听器保留一份
 		return new SpringApplicationRunListeners(logger,
 				getSpringFactoriesInstances(SpringApplicationRunListener.class, types, this, args));
 	}
@@ -423,8 +434,11 @@ public class SpringApplication {
 	private <T> Collection<T> getSpringFactoriesInstances(Class<T> type, Class<?>[] parameterTypes, Object... args) {
 		ClassLoader classLoader = getClassLoader();
 		// Use names and ensure unique to protect against duplicates
+		// 从spring。factories中获取所有type类型的实现类的名称，以下为Spring Core的逻辑，并不属于spring boot
 		Set<String> names = new LinkedHashSet<>(SpringFactoriesLoader.loadFactoryNames(type, classLoader));
+		// 通过class name创建实例
 		List<T> instances = createSpringFactoriesInstances(type, parameterTypes, classLoader, args, names);
+		// 排序，无非就是(@Order, @Priority, Order接口)
 		AnnotationAwareOrderComparator.sort(instances);
 		return instances;
 	}
@@ -437,8 +451,11 @@ public class SpringApplication {
 			try {
 				Class<?> instanceClass = ClassUtils.forName(name, classLoader);
 				Assert.isAssignable(type, instanceClass);
+				// 这里的parameterTypes一般为null数组，因为spring boot启动时候传入的就是new Class[] {}，所以此处大意是获取instanceClass的空参构造
 				Constructor<?> constructor = instanceClass.getDeclaredConstructor(parameterTypes);
+				// 直接用构造器实例化
 				T instance = (T) BeanUtils.instantiateClass(constructor, args);
+				// add到instances，instances会return给调用方
 				instances.add(instance);
 			}
 			catch (Throwable ex) {

@@ -1,15 +1,4 @@
-package com.yao;
-
-import com.main.starter.TestStarterProperties;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
-
-import javax.annotation.Resource;
+package util;
 
 /**
  * 　　　　　　　 ┏┓　 ┏┓+ +
@@ -35,34 +24,16 @@ import javax.annotation.Resource;
  * 　　　　　　　　  ┗┻┛ ┗┻┛+ + + +
  * <p>
  * spring-boot-build
- * 2020-03-03 23:55
+ * 2020-12-13 15:21
  *
  * @author yaoyy
  */
-@SpringBootApplication
-@RestController
-public class HelloSpringboot {
+public class Log {
 
-//	@Autowired
-//	RedisTemplate
-
-	public static void main(String[] args) throws Exception {
-
-		SpringApplication.run(HelloSpringboot.class);
-
-//		SpringApplication.main(args);
-	}
-
-	@GetMapping("/hello")
-	public String hello(@RequestParam(value = "name", defaultValue = "World") String name) {
-		return String.format("Hello %s!", name);
-	}
-
-	@Resource
-	TestStarterProperties properties;
-
-	@GetMapping("/properties")
-	public String properties() {
-		return String.format("Hello %s!", properties);
+	public static void log(Object o) {
+		StackTraceElement stackTraceElement = new RuntimeException().getStackTrace()[1];
+		System.err.print(stackTraceElement.toString());
+		System.err.print("说: ");
+		System.out.println(o);
 	}
 }

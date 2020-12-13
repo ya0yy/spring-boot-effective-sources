@@ -44,6 +44,7 @@ class SpringApplicationRunListeners {
 
 	void starting() {
 		for (SpringApplicationRunListener listener : this.listeners) {
+			// ApplicationStartingEvent事件执行
 			listener.starting();
 		}
 	}

@@ -51,6 +51,7 @@ public class EventPublishingRunListener implements SpringApplicationRunListener,
 
 	private final SimpleApplicationEventMulticaster initialMulticaster;
 
+	// 有参构造器，把application中所有的监听器添加到initialMulticaster中
 	public EventPublishingRunListener(SpringApplication application, String[] args) {
 		this.application = application;
 		this.args = args;
@@ -67,6 +68,19 @@ public class EventPublishingRunListener implements SpringApplicationRunListener,
 
 	@Override
 	public void starting() {
+		// 执行监听了ApplicationStartingEvent事件的监听器
+		// 默认有4个监听器会执行
+		// org.springframework.boot.autoconfigure.BackgroundPreinitializer
+		// 		如果是多核cpu则会使用多线程去创建一些预初始化器（如转换器、校验器，不过不知道初始化了有什么用，源码中好像没有看到初始化后放到context中的代码）
+		//
+		// org.springframework.boot.context.logging.LoggingApplicationListener
+		// 		对日志系统做一些初始化，具体没仔细研究
+		//
+		// org.springframework.boot.context.config.DelegatingApplicationListener
+		// 		委托事件执行器，将事件直接转发给它的子监听器。默认啥事也没做。
+		//
+		// org.springframework.boot.liquibase.LiquibaseServiceLocatorApplicationListener
+		// 		liquibase的初始化或预处理程序吧，没研究这玩意，好似是一个数据库脚本的版本控制工具，会在项目运行时记录所有的数据库变化
 		this.initialMulticaster.multicastEvent(new ApplicationStartingEvent(this.application, this.args));
 	}
 
