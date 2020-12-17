@@ -1,4 +1,4 @@
-package com.yao;
+package com.hello;
 
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;

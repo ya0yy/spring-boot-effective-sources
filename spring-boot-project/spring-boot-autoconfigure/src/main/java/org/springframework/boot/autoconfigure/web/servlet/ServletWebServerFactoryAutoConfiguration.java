@@ -60,6 +60,8 @@ import org.springframework.web.filter.ForwardedHeaderFilter;
 @ConditionalOnClass(ServletRequest.class)
 @ConditionalOnWebApplication(type = Type.SERVLET)
 @EnableConfigurationProperties(ServerProperties.class)
+// BeanPostProcessorsRegistrars的registerBeanDefinitions方法注册了WebServerFactoryCustomizerBeanPostProcessor的BeanDefinition，
+// 而WebServerFactoryCustomizerBeanPostProcessor的postProcessBeforeInitialization方法中，完成了嵌入式服务器的创建（也就是调用Customizer的customize方法）
 @Import({ ServletWebServerFactoryAutoConfiguration.BeanPostProcessorsRegistrar.class,
 		ServletWebServerFactoryConfiguration.EmbeddedTomcat.class,
 		ServletWebServerFactoryConfiguration.EmbeddedJetty.class,

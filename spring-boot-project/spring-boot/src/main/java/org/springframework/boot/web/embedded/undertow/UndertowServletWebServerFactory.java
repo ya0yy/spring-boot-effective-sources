@@ -215,6 +215,7 @@ public class UndertowServletWebServerFactory extends AbstractServletWebServerFac
 
 	@Override
 	public WebServer getWebServer(ServletContextInitializer... initializers) {
+		// 这里面创建了undertow的Servlet的DeploymentManager，请注意initializers是spring自生环境的初始化方法的引用，当服务器执行ServletContextInitializer生命周期时会调用它
 		DeploymentManager manager = createDeploymentManager(initializers);
 		int port = getPort();
 		Builder builder = createBuilder(port);
@@ -241,6 +242,7 @@ public class UndertowServletWebServerFactory extends AbstractServletWebServerFac
 		else {
 			builder.addHttpListener(port, getListenAddress());
 		}
+		// 这里执行了在org.springframework.boot.autoconfigure.web.embedded.UndertowWebServerFactoryCustomizer.customize中所添加的所有customize
 		for (UndertowBuilderCustomizer customizer : this.builderCustomizers) {
 			customizer.customize(builder);
 		}
@@ -268,15 +270,18 @@ public class UndertowServletWebServerFactory extends AbstractServletWebServerFac
 		deployment.setContextPath(getContextPath());
 		deployment.setDisplayName(getDisplayName());
 		deployment.setDeploymentName("spring-boot");
+		// undertow有一个默认的Servlet，注不注册都不影响
 		if (isRegisterDefaultServlet()) {
 			deployment.addServlet(Servlets.servlet("default", DefaultServlet.class));
 		}
+		// 这里可能是添加spring boot自带的错误页面
 		configureErrorPages(deployment);
 		deployment.setServletStackTraces(ServletStackTraces.NONE);
 		deployment.setResourceManager(getDocumentRootResourceManager());
 		deployment.setTempDir(createTempDir("undertow"));
 		deployment.setEagerFilterInit(this.eagerInitFilters);
 		configureMimeMappings(deployment);
+		// 添加对websocket的支持
 		for (UndertowDeploymentInfoCustomizer customizer : this.deploymentInfoCustomizers) {
 			customizer.customize(deployment);
 		}
@@ -287,9 +292,11 @@ public class UndertowServletWebServerFactory extends AbstractServletWebServerFac
 			File dir = getValidSessionStoreDir();
 			deployment.setSessionPersistenceManager(new FileSessionPersistence(dir));
 		}
+		// 国际化处理
 		addLocaleMappings(deployment);
 		DeploymentManager manager = Servlets.newContainer().addDeployment(deployment);
 		manager.deploy();
+		// 移除undertow的mime映射，添加spring的。（实际上deployment中的mime映射已经在上面的configureMimeMappings由spring添加进去了）
 		if (manager.getDeployment() instanceof DeploymentImpl) {
 			removeSuperfluousMimeMappings((DeploymentImpl) manager.getDeployment(), deployment);
 		}

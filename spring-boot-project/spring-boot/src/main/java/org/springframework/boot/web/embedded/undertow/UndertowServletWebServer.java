@@ -137,8 +137,10 @@ public class UndertowServletWebServer implements WebServer {
 					return;
 				}
 				if (this.undertow == null) {
+					// 里面设置了undertow的一些参数，包括servlet
 					this.undertow = createUndertowServer();
 				}
+				// 启动
 				this.undertow.start();
 				this.started = true;
 				UndertowServletWebServer.logger.info("Undertow started on port(s) " + getPortsDescription()
@@ -193,6 +195,7 @@ public class UndertowServletWebServer implements WebServer {
 
 	private Undertow createUndertowServer() throws ServletException {
 		HttpHandler httpHandler = this.manager.start();
+		// 可能是将上面的servlet handler做了一层包裹，使其支持http压缩
 		httpHandler = getContextHandler(httpHandler);
 		if (this.useForwardHeaders) {
 			httpHandler = Handlers.proxyPeerAddress(httpHandler);

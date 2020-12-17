@@ -146,6 +146,8 @@ public class ServletWebServerApplicationContext extends GenericWebApplicationCon
 		}
 	}
 
+	// spring boot实现，原spring中onRefresh为空实现。
+	// 主要是创建webserver
 	@Override
 	protected void onRefresh() {
 		super.onRefresh();
@@ -160,6 +162,7 @@ public class ServletWebServerApplicationContext extends GenericWebApplicationCon
 	@Override
 	protected void finishRefresh() {
 		super.finishRefresh();
+		// 启动webserver
 		WebServer webServer = startWebServer();
 		if (webServer != null) {
 			publishEvent(new ServletWebServerInitializedEvent(webServer, this));
@@ -176,7 +179,10 @@ public class ServletWebServerApplicationContext extends GenericWebApplicationCon
 		WebServer webServer = this.webServer;
 		ServletContext servletContext = getServletContext();
 		if (webServer == null && servletContext == null) {
+			// 获取容器中唯一的一个ServletWebFactory
 			ServletWebServerFactory factory = getWebServerFactory();
+			// getSelfInitializer()传递的是一个方法引用org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext#selfInitialize
+			// 该方法会在Servlet容器初始化的时候被调用，完成DispatcherServlet与web服务器的整合
 			this.webServer = factory.getWebServer(getSelfInitializer());
 		}
 		else if (servletContext != null) {
@@ -198,6 +204,7 @@ public class ServletWebServerApplicationContext extends GenericWebApplicationCon
 	 */
 	protected ServletWebServerFactory getWebServerFactory() {
 		// Use bean names so that we don't consider the hierarchy
+		// ServletWebServerFactory在org.springframework.boot.autoconfigure.web.servlet.ServletWebServerFactoryConfiguration 中被加载
 		String[] beanNames = getBeanFactory().getBeanNamesForType(ServletWebServerFactory.class);
 		if (beanNames.length == 0) {
 			throw new ApplicationContextException("Unable to start ServletWebServerApplicationContext due to missing "
@@ -207,6 +214,7 @@ public class ServletWebServerApplicationContext extends GenericWebApplicationCon
 			throw new ApplicationContextException("Unable to start ServletWebServerApplicationContext due to multiple "
 					+ "ServletWebServerFactory beans : " + StringUtils.arrayToCommaDelimitedString(beanNames));
 		}
+		// 返回第一个ServletWebServerFactory，这里必然只有1个，上面已经做过数量的判断了
 		return getBeanFactory().getBean(beanNames[0], ServletWebServerFactory.class);
 	}
 
@@ -221,9 +229,13 @@ public class ServletWebServerApplicationContext extends GenericWebApplicationCon
 	}
 
 	private void selfInitialize(ServletContext servletContext) throws ServletException {
+		// 将servletContext保存到applicationContext中，并且把ac也保存到ServletContext域中
 		prepareWebApplicationContext(servletContext);
 		registerApplicationScope(servletContext);
 		WebApplicationContextUtils.registerEnvironmentBeans(getBeanFactory(), servletContext);
+		// 这里会拿到容器中所有的ServletContextInitializer
+		// org.springframework.boot.autoconfigure.web.servlet.DispatcherServletAutoConfiguration.DispatcherServletRegistrationConfiguration.dispatcherServletRegistration
+		// 上面注释的这个地方，会把DispatcherServletRegistrationBean放到容器中，然后此处拿到，并调用onStartup，会把DispatchServlet添加到web服务器中
 		for (ServletContextInitializer beans : getServletContextInitializerBeans()) {
 			beans.onStartup(servletContext);
 		}

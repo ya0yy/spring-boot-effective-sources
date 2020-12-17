@@ -30,7 +30,7 @@ package util;
  */
 public class Log {
 
-	public static void log(Object o) {
+	public synchronized static void log(Object o) {
 		StackTraceElement stackTraceElement = new RuntimeException().getStackTrace()[1];
 		System.err.print(stackTraceElement.toString());
 		System.err.print("说: ");

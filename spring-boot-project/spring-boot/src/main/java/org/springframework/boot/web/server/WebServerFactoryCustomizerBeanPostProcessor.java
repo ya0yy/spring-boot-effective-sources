@@ -65,6 +65,7 @@ public class WebServerFactoryCustomizerBeanPostProcessor implements BeanPostProc
 		return bean;
 	}
 
+	// 拿到容器中所有的定制器来调用customize方法，基本上就是做一些定制配置
 	@SuppressWarnings("unchecked")
 	private void postProcessBeforeInitialization(WebServerFactory webServerFactory) {
 		LambdaSafe.callbacks(WebServerFactoryCustomizer.class, getCustomizers(), webServerFactory)
@@ -72,6 +73,7 @@ public class WebServerFactoryCustomizerBeanPostProcessor implements BeanPostProc
 				.invoke((customizer) -> customizer.customize(webServerFactory));
 	}
 
+	// 实时从容器中拿到WebServerFactoryCustomizer.class
 	private Collection<WebServerFactoryCustomizer<?>> getCustomizers() {
 		if (this.customizers == null) {
 			// Look up does not include the parent context
