@@ -105,11 +105,14 @@ public abstract class DynamicRegistrationBean<D extends Registration.Dynamic> ex
 
 	@Override
 	protected final void register(String description, ServletContext servletContext) {
+		// 添加DispatcherServlet到ServletContext，本类中的Servlet是在创建本bean的时候放入进去的
+		// org.springframework.boot.autoconfigure.web.servlet.DispatcherServletAutoConfiguration.DispatcherServletRegistrationConfiguration.dispatcherServletRegistration
 		D registration = addRegistration(description, servletContext);
 		if (registration == null) {
 			logger.info(StringUtils.capitalize(description) + " was not registered (possibly already registered?)");
 			return;
 		}
+		// 配置Servlet（mapping，优先级等）
 		configure(registration);
 	}
 

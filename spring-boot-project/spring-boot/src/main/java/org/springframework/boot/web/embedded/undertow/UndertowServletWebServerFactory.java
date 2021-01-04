@@ -215,7 +215,7 @@ public class UndertowServletWebServerFactory extends AbstractServletWebServerFac
 
 	@Override
 	public WebServer getWebServer(ServletContextInitializer... initializers) {
-		// 这里面创建了undertow的Servlet的DeploymentManager，请注意initializers是spring自生环境的初始化方法的引用，当服务器执行ServletContextInitializer生命周期时会调用它
+		// 这里面创建了undertow的Servlet的DeploymentManager，请注意initializers是spring自身环境的初始化方法的引用，当服务器执行ServletContextInitializer生命周期时会调用它
 		DeploymentManager manager = createDeploymentManager(initializers);
 		int port = getPort();
 		Builder builder = createBuilder(port);
@@ -265,12 +265,13 @@ public class UndertowServletWebServerFactory extends AbstractServletWebServerFac
 
 	private DeploymentManager createDeploymentManager(ServletContextInitializer... initializers) {
 		DeploymentInfo deployment = Servlets.deployment();
+		// 往undertow的deployment中注册ServletContextInitializer，注意ServletContextInitializer是spring对servlet生命周期的描述，属于spring的类
 		registerServletContainerInitializerToDriveServletContextInitializers(deployment, initializers);
 		deployment.setClassLoader(getServletClassLoader());
 		deployment.setContextPath(getContextPath());
 		deployment.setDisplayName(getDisplayName());
 		deployment.setDeploymentName("spring-boot");
-		// undertow有一个默认的Servlet，注不注册都不影响
+		// 默认的Servlet这里添不添加都不影响
 		if (isRegisterDefaultServlet()) {
 			deployment.addServlet(Servlets.servlet("default", DefaultServlet.class));
 		}
@@ -295,6 +296,7 @@ public class UndertowServletWebServerFactory extends AbstractServletWebServerFac
 		// 国际化处理
 		addLocaleMappings(deployment);
 		DeploymentManager manager = Servlets.newContainer().addDeployment(deployment);
+		// manager.deploy会执行Servlet生命周期，包括SCI
 		manager.deploy();
 		// 移除undertow的mime映射，添加spring的。（实际上deployment中的mime映射已经在上面的configureMimeMappings由spring添加进去了）
 		if (manager.getDeployment() instanceof DeploymentImpl) {
@@ -354,8 +356,11 @@ public class UndertowServletWebServerFactory extends AbstractServletWebServerFac
 
 	private void registerServletContainerInitializerToDriveServletContextInitializers(DeploymentInfo deployment,
 			ServletContextInitializer... initializers) {
+		// 这个方法里会加入一些ServletContextInitializer
 		ServletContextInitializer[] mergedInitializers = mergeInitializers(initializers);
+		// Initializer实现了ServletContainerInitializer，此处相当于把Spring的ServletContextInitializer包装成了Servlet规范的ServletContainerInitializer
 		Initializer initializer = new Initializer(mergedInitializers);
+		// 添加到undertow的ServletContainerInitializer中，当调用mange::deploy时，会调用Initializer::onStartup
 		deployment.addServletContainerInitializer(new ServletContainerInitializerInfo(Initializer.class,
 				new ImmediateInstanceFactory<ServletContainerInitializer>(initializer), NO_CLASSES));
 	}

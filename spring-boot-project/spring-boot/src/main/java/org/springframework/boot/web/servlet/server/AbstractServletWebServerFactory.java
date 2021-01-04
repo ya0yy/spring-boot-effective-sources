@@ -246,9 +246,13 @@ public abstract class AbstractServletWebServerFactory extends AbstractConfigurab
 	 */
 	protected final ServletContextInitializer[] mergeInitializers(ServletContextInitializer... initializers) {
 		List<ServletContextInitializer> mergedInitializers = new ArrayList<>();
+		// Servlet parameter设置到Servlet容器
 		mergedInitializers.add((servletContext) -> this.initParameters.forEach(servletContext::setInitParameter));
+		// SessionConfiguringInitializer 关于session配置，
 		mergedInitializers.add(new SessionConfiguringInitializer(this.session));
+		// 方法传参，这里有个关键的点是initializers会把ServletWebServerApplicationContext::selfInitialize带过来，selfInitialize是初始化最关键的一个初始化方法
 		mergedInitializers.addAll(Arrays.asList(initializers));
+		// 自带的
 		mergedInitializers.addAll(this.initializers);
 		return mergedInitializers.toArray(new ServletContextInitializer[0]);
 	}

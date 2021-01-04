@@ -228,6 +228,12 @@ public class ServletWebServerApplicationContext extends GenericWebApplicationCon
 		return this::selfInitialize;
 	}
 
+	// 比较关键的方法，当代码执行到此，说明生命周期已经进入到spring的执行流程，本方法会执行Spring自己的ServletContextInitializer::onStartup
+	// 本方法是在Servlet容器的SCI生命周期中被调用执行，但本方法并不是一个ServletContainerInitializer，而是ServletContextInitializer，
+	// 只是spring会将本方法引用（本方法的方法引用实际上就是一个ServletContainerInitializer），包装成ServletContainerInitializer，在Web服务器执行
+	// SCI生命周期时，会调用到本方法（undertow的代码在
+	// org.springframework.boot.web.embedded.undertow.UndertowServletWebServerFactory.registerServletContainerInitializerToDriveServletContextInitializers）
+	// 注意：执行到这里的时候spring还没有去初始化所有bean
 	private void selfInitialize(ServletContext servletContext) throws ServletException {
 		// 将servletContext保存到applicationContext中，并且把ac也保存到ServletContext域中
 		prepareWebApplicationContext(servletContext);
@@ -260,6 +266,7 @@ public class ServletWebServerApplicationContext extends GenericWebApplicationCon
 	 * {@link ServletContextInitializer}, {@link Servlet}, {@link Filter} and certain
 	 * {@link EventListener} beans.
 	 * @return the servlet initializer beans
+	 * 注意！ServletContextInitializerBeans继承了AbstractCollection
 	 */
 	protected Collection<ServletContextInitializer> getServletContextInitializerBeans() {
 		return new ServletContextInitializerBeans(getBeanFactory());

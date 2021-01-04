@@ -80,19 +80,26 @@ public class ServletContextInitializerBeans extends AbstractCollection<ServletCo
 	public ServletContextInitializerBeans(ListableBeanFactory beanFactory,
 			Class<? extends ServletContextInitializer>... initializerTypes) {
 		this.initializers = new LinkedMultiValueMap<>();
+		// this.initializerTypes里啥都没有的话=Collections.singletonList(ServletContextInitializer.class)
 		this.initializerTypes = (initializerTypes.length != 0) ? Arrays.asList(initializerTypes)
 				: Collections.singletonList(ServletContextInitializer.class);
+		// 从beanFactory中找到ServletContextInitializer类型的bean
+		// 一般情况下只会有一个DispatcherServletRegistrationBean，是在DispatcherServletAutoConfiguration中配置到容器中的
+		// 通过initializerTypes在容器中拿ServletContextInitializer，（DispatcherServletRegistrationBean）
 		addServletContextInitializerBeans(beanFactory);
+		// 通过适配器将容器中的Filter、Servlet、Listener包装为ServletContextInitializer，放到initializers
 		addAdaptableBeans(beanFactory);
 		List<ServletContextInitializer> sortedInitializers = this.initializers.values().stream()
 				.flatMap((value) -> value.stream().sorted(AnnotationAwareOrderComparator.INSTANCE))
 				.collect(Collectors.toList());
 		this.sortedList = Collections.unmodifiableList(sortedInitializers);
+		// 日志
 		logMappings(this.initializers);
 	}
 
 	private void addServletContextInitializerBeans(ListableBeanFactory beanFactory) {
 		for (Class<? extends ServletContextInitializer> initializerType : this.initializerTypes) {
+			// 从容器中拿到所有的initializerType，并添加到initializers中
 			for (Entry<String, ? extends ServletContextInitializer> initializerBean : getOrderedBeansOfType(beanFactory,
 					initializerType)) {
 				addServletContextInitializerBean(initializerBean.getKey(), initializerBean.getValue(), beanFactory);
@@ -102,6 +109,9 @@ public class ServletContextInitializerBeans extends AbstractCollection<ServletCo
 
 	private void addServletContextInitializerBean(String beanName, ServletContextInitializer initializer,
 			ListableBeanFactory beanFactory) {
+		// ServletRegistrationBean有个子类DispatcherServletRegistrationBean，DispatcherServletRegistrationBean是在
+		// org.springframework.boot.autoconfigure.web.servlet.DispatcherServletAutoConfiguration.DispatcherServletRegistrationConfiguration.dispatcherServletRegistration
+		// 被放入到容器中，DispatcherServlet也是在创建该bean的时候被创建
 		if (initializer instanceof ServletRegistrationBean) {
 			Servlet source = ((ServletRegistrationBean<?>) initializer).getServlet();
 			addServletContextInitializerBean(Servlet.class, beanName, initializer, beanFactory, source);
@@ -150,8 +160,11 @@ public class ServletContextInitializerBeans extends AbstractCollection<ServletCo
 	@SuppressWarnings("unchecked")
 	protected void addAdaptableBeans(ListableBeanFactory beanFactory) {
 		MultipartConfigElement multipartConfig = getMultipartConfig(beanFactory);
+		// 该方法里大致就是获取到Spring容器中所有的Servlet.class，然后通过这个适配器生成ServletContextInitializer对象放入到this.initializers中
 		addAsRegistrationBean(beanFactory, Servlet.class, new ServletRegistrationBeanAdapter(multipartConfig));
+		// 这个和上面一样，不过这里是拿Filter.class
 		addAsRegistrationBean(beanFactory, Filter.class, new FilterRegistrationBeanAdapter());
+		// 监听器这里比较有意思，需要去循环获取spring容器中所有Servlet规范的监听器类型
 		for (Class<?> listenerType : ServletListenerRegistrationBean.getSupportedTypes()) {
 			addAsRegistrationBean(beanFactory, EventListener.class, (Class<EventListener>) listenerType,
 					new ServletListenerRegistrationBeanAdapter());
@@ -169,6 +182,10 @@ public class ServletContextInitializerBeans extends AbstractCollection<ServletCo
 		addAsRegistrationBean(beanFactory, type, type, adapter);
 	}
 
+	// 这个方法比较牛逼，会在容器中拿到所有的beanType类型的bean，然后生成ServletContextInitializer对象，再添加到initializers
+	// 值得一提的是type与beanType只是对Servlet规范的监听器做的设计，因为Servlet规范的多个监听器全部都继承了jdk自带的EventListener标记接口
+	// 然而EventListener并不能代表Servlet的监听器，反过来Servlet的监听器一定是EventListener，所以此处区分了type与beanType，type用于标记
+	// Servlet组件的类型（如Servlet，Filter，Listener），beanType记录bean的具体类型
 	private <T, B extends T> void addAsRegistrationBean(ListableBeanFactory beanFactory, Class<T> type,
 			Class<B> beanType, RegistrationBeanAdapter<T> adapter) {
 		List<Map.Entry<String, B>> entries = getOrderedBeansOfType(beanFactory, beanType, this.seen);
@@ -177,8 +194,10 @@ public class ServletContextInitializerBeans extends AbstractCollection<ServletCo
 			B bean = entry.getValue();
 			if (this.seen.add(bean)) {
 				// One that we haven't already seen
+				// RegistrationBean是抽象类，实现了ServletContextInitializer
 				RegistrationBean registration = adapter.createRegistrationBean(beanName, bean, entries.size());
 				int order = getOrder(bean);
+				// ServletContextInitializer也会使用bean的order
 				registration.setOrder(order);
 				this.initializers.add(type, registration);
 				if (logger.isTraceEnabled()) {

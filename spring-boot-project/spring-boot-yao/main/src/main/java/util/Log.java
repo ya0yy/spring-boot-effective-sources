@@ -32,8 +32,6 @@ public class Log {
 
 	public synchronized static void log(Object o) {
 		StackTraceElement stackTraceElement = new RuntimeException().getStackTrace()[1];
-		System.err.print(stackTraceElement.toString());
-		System.err.print("说: ");
-		System.out.println(o);
+		System.err.println(stackTraceElement.toString() + "说: " + o);
 	}
 }
