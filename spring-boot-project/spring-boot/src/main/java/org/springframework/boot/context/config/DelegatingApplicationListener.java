@@ -53,6 +53,7 @@ public class DelegatingApplicationListener implements ApplicationListener<Applic
 
 	@Override
 	public void onApplicationEvent(ApplicationEvent event) {
+		// 如果是环境预备事件就搞一些操作。。。
 		if (event instanceof ApplicationEnvironmentPreparedEvent) {
 			List<ApplicationListener<ApplicationEvent>> delegates = getListeners(
 					((ApplicationEnvironmentPreparedEvent) event).getEnvironment());

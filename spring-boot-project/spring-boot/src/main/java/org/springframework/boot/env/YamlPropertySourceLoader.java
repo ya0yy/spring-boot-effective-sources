@@ -47,6 +47,7 @@ public class YamlPropertySourceLoader implements PropertySourceLoader {
 			throw new IllegalStateException(
 					"Attempted to load " + name + " but snakeyaml was not found on the classpath");
 		}
+		// 通过OriginTrackedYamlLoader来load为map，OriginTrackedYamlLoader其实是原生YamlProcessor的封装
 		List<Map<String, Object>> loaded = new OriginTrackedYamlLoader(resource).load();
 		if (loaded.isEmpty()) {
 			return Collections.emptyList();

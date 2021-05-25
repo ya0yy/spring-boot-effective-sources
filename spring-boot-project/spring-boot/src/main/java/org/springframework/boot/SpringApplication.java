@@ -313,6 +313,7 @@ public class SpringApplication {
 		listeners.starting();
 		try {
 			ApplicationArguments applicationArguments = new DefaultApplicationArguments(args);
+			// 预处理environment，解析yml配置
 			ConfigurableEnvironment environment = prepareEnvironment(listeners, applicationArguments);
 			configureIgnoreBeanInfo(environment);
 			Banner printedBanner = printBanner(environment);
@@ -347,9 +348,13 @@ public class SpringApplication {
 	private ConfigurableEnvironment prepareEnvironment(SpringApplicationRunListeners listeners,
 			ApplicationArguments applicationArguments) {
 		// Create and configure the environment
+		// 根据当前环境创建Environment的实例
 		ConfigurableEnvironment environment = getOrCreateEnvironment();
+		// applicationArguments.getSourceArgs()是获取 java命令后面的--参数，如 --spring.config.location=/Users/yaoyang/
 		configureEnvironment(environment, applicationArguments.getSourceArgs());
+		// 这个里面把propertySource添加到了propertySource中，不知道要干什么
 		ConfigurationPropertySources.attach(environment);
+		// environment准备好了
 		listeners.environmentPrepared(environment);
 		bindToSpringApplication(environment);
 		if (!this.isCustomEnvironment) {
